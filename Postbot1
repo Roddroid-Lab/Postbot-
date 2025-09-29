@@ -1,0 +1,181 @@
+{
+  "name": "postbot-app",
+  "version": "1.0.0",
+  "description": "AI-Powered Social Media Automation with Grok",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "openai": "^4.0.0",
+    "cors": "^2.8.5"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}const express = require('express');
+const cors = require('cors');
+const OpenAI = require('openai');
+const path = require('path');
+
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+app.use(cors());
+app.use(express.json());
+app.use(express.static('public'));
+
+const openai = new OpenAI({
+    apiKey: process.env.XAI_API_KEY,
+    baseURL: 'https://api.x.ai/v1',
+});
+
+app.post('/api/generate', async (req, res) => {
+    const { topic } = req.body;
+    if (!topic) {
+        return res.status(400).json({ error: 'Topic is required' });
+    }
+
+    try {
+        const completion = await openai.chat.completions.create({
+            model: 'grok-4',
+            messages: [
+                { role: 'system', content: 'You are a social media expert. Generate engaging, concise posts for X/Twitter (under 280 chars). Include emojis and hashtags where fitting.' },
+                { role: 'user', content: `Create a viral post about: ${topic}` }
+            ],
+            max_tokens: 100,
+            temperature: 0.7,
+        });
+        const post = completion.choices[0].message.content.trim();
+        res.json({ post });
+    } catch (error) {
+        console.error('Grok API Error:', error);
+        res.status(500).json({ error: 'Failed to generate post. Check API key and limits.' });
+    }
+});
+
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+app.listen(PORT, () => {
+    console.log(`PostBot server running on port ${PORT}`);
+});<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PostBot - AI-Powered Social Media Automation</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header>
+        <h1>PostBot</h1>
+        <p>AI-Powered Social Media Automation with Grok</p>
+    </header>
+    <main>
+        <section>
+            <h2>Welcome to PostBot</h2>
+            <p>Streamline your social media presence with Grok AI-driven automation. Generate posts, analyze engagement, and grow your audience effortlessly.</p>
+        </section>
+        <section>
+            <h2>Generate a Post with Grok</h2>
+            <form id="postForm">
+                <input type="text" id="topic" placeholder="Enter a topic (e.g., 'AI in marketing')" required>
+                <button type="submit">Generate Post</button>
+            </form>
+            <div id="generatedPost"></div>
+        </section>
+        <section>
+            <h2>Key Features</h2>
+            <ul>
+                <li>Grok AI-generated content tailored to your brand</li>
+                <li>Multi-platform support (X, Instagram, LinkedIn, etc.)</li>
+                <li>Real-time analytics and insights</li>
+                <li>Easy scheduling and automation rules</li>
+            </ul>
+        </section>
+        <section>
+            <h2>Get Started</h2>
+            <p>Sign up today and transform your social strategy!</p>
+            <button onclick="alert('Redirecting to signup... (Implement your signup logic here.)')">Start Free Trial</button>
+        </section>
+    </main>
+    <footer>
+        <p>&copy; 2025 PostBot. Powered by xAI Grok API.</p>
+    </footer>
+
+    <script>
+        document.getElementById('postForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const topic = document.getElementById('topic').value;
+            const resultDiv = document.getElementById('generatedPost');
+            const button = e.target.querySelector('button');
+            const originalText = button.textContent;
+
+            button.textContent = 'Generating...';
+            resultDiv.innerHTML = '<p>Generating with Grok...</p>';
+
+            try {
+                const response = await fetch('/api/generate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ topic })
+                });
+                const data = await response.json();
+                if (response.ok) {
+                    resultDiv.innerHTML = `<p><strong>Generated Post:</strong> ${data.post}</p>`;
+                } else {
+                    resultDiv.innerHTML = `<p>Error: ${data.error}</p>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<p>Error: Network issue. Try again.</p>`;
+            }
+            button.textContent = originalText;
+        });
+    </script>
+</body>
+</html>body { font-family: Arial, sans-serif; margin: 0; padding: 0; background-color: #f4f4f4; color: #333; }
+header { background-color: #007bff; color: white; padding: 20px; text-align: center; }
+main { max-width: 800px; margin: 20px auto; padding: 20px; background: white; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+footer { text-align: center; padding: 10px; background-color: #007bff; color: white; }
+button { background-color: #28a745; color: white; padding: 10px 20px; border: none; cursor: pointer; border-radius: 4px; }
+button:hover { background-color: #218838; }
+form { margin: 20px 0; display: flex; gap: 10px; }
+input[type="text"] { flex: 1; padding: 10px; border: 1px solid #ddd; border-radius: 4px; }
+#generatedPost { margin-top: 20px; padding: 10px; background: #e9ecef; border-radius: 5px; min-height: 50px; }
+ul { list-style-type: disc; padding-left: 20px; }# PostBot - AI-Powered Social Media Automation
+
+A full-stack app integrating the xAI Grok API to generate social media posts. Built with Node.js, Express, and vanilla HTML/CSS/JS.
+
+## Setup
+1. Install Node.js (v18+).
+2. Run `npm install` to install dependencies.
+3. Set environment variable: `export XAI_API_KEY=your_key_here` (get from https://x.ai/api).
+4. Start server: `npm start`.
+5. Visit `http://localhost:3000` to test.
+
+## Deployment (Render)
+1. Push to a GitHub repo.
+2. Sign up at [render.com](https://render.com).
+3. Create Web Service, connect GitHub repo.
+4. Set:
+   - Runtime: Node
+   - Build Command: `npm install`
+   - Start Command: `npm start`
+   - Env Var: `XAI_API_KEY=your_key_here`
+5. Deploy to get a live URL (e.g., `https://postbot-random.onrender.com`).
+
+## Features
+- Generate X/Twitter posts with Grok API.
+- Simple, responsive UI.
+- Secure backend API calls.
+
+## Notes
+- Monitor API usage at [xAI Docs](https://docs.x.ai/docs/models).
+- Add auth/database for production (e.g., MongoDB Atlas).
